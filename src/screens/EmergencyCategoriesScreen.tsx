@@ -3,14 +3,15 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList, 
+  FlatList,
   SafeAreaView,
-  StatusBar, 
+  StatusBar,
   Alert,
   TouchableOpacity,
   Dimensions,
-  Modal, 
-  ImageBackground} from 'react-native';
+  Modal,
+  ImageBackground
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { EmergencyContactsModal } from '../components/EmergencyContactsModal';
@@ -59,14 +60,14 @@ export const EmergencyCategoriesScreen: React.FC<EmergencyCategoriesScreenProps>
 
     if (guide) {
       voiceService.speak(`Has seleccionado ${category.title}. Iniciando guía de primeros auxilios.`);
-      
+
       navigation.navigate('EmergencySteps', {
         guideId: guide.id,
         currentStepId: guide.initialQuestion?.id || guide.steps[0]?.id || ''
       });
     } else {
       voiceService.speak(`La guía de ${category.title} aún no está disponible. Por favor, llama a emergencias inmediatamente.`);
-      
+
       setTimeout(() => {
         Alert.alert(
           `${category.title} - No Disponible`,
@@ -96,7 +97,7 @@ export const EmergencyCategoriesScreen: React.FC<EmergencyCategoriesScreenProps>
   };
 
   const renderCategory = ({ item }: { item: EmergencyCard }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={styles.categoryCard}
       onPress={() => handleCategoryPress(item)}
       activeOpacity={0.8}
@@ -122,33 +123,32 @@ export const EmergencyCategoriesScreen: React.FC<EmergencyCategoriesScreenProps>
             ¡Siempre estamos aquí para emergencias!{`\n`}¡Toca para iniciar el protocolo de emergencia!
           </Text>
         </View>
-
-        <TouchableOpacity style={styles.emergencyButton} onPress={handleEmergencyCall}>
-          <MaterialCommunityIcons name="phone" size={60} color="white" />
-        </TouchableOpacity>
-
-        <FlatList
-          data={emergencyCards}
-          renderItem={renderCategory}
-          keyExtractor={(item) => item.id}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.sliderContainer}
-        />
-
+        <View style={styles.centerContent}>
+          <TouchableOpacity style={styles.emergencyButtonBig} onPress={handleEmergencyCall}>
+            <MaterialCommunityIcons name="phone" size={80} color="white" />
+          </TouchableOpacity>
+          <View style={styles.carouselWrapper}>
+            <FlatList
+              data={emergencyCards}
+              renderItem={renderCategory}
+              keyExtractor={(item) => item.id}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.sliderContainer}
+            />
+          </View>
+        </View>
         <View style={styles.bottomNav}>
           <TouchableOpacity style={styles.navItem}>
             <MaterialCommunityIcons name="home-variant" size={28} color="#e94e4e" />
             <Text style={[styles.navText, { color: '#e94e4e' }]}>Emergencia</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.navItem} onPress={() => setListeningModalVisible(true)}>
-            <View style={styles.micButton}>
-              <MaterialCommunityIcons name="microphone" size={32} color="white" />
+          <TouchableOpacity style={styles.micNavItem} onPress={() => setListeningModalVisible(true)}>
+            <View style={styles.micButtonBig}>
+              <MaterialCommunityIcons name="microphone" size={36} color="white" />
             </View>
             <Text style={styles.navText}>Asistente</Text>
           </TouchableOpacity>
-          
           <TouchableOpacity style={styles.navItem}>
             <MaterialCommunityIcons name="view-dashboard" size={28} color="#8e8e93" />
             <Text style={styles.navText}>Dashboard</Text>
@@ -195,6 +195,7 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
+    justifyContent: 'flex-end'
   },
   header: {
     paddingTop: 40,
@@ -214,28 +215,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
   },
-  emergencyButton: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#e94e4e',
-    justifyContent: 'center',
-    alignItems: 'center',
-    alignSelf: 'center',
-    marginVertical: 30,
-    shadowColor: '#e94e4e',
-    shadowOffset: {
-      width: 0,
-      height: 10,
-    },
-    shadowOpacity: 0.4,
-    shadowRadius: 15,
-    elevation: 10,
-  },
   sliderContainer: {
     paddingHorizontal: 20,
     paddingBottom: 20,
     height: 220,
+  },
+  carouselWrapper: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 60,
+    marginTop: 25,
   },
   categoryCard: {
     width: width * 0.4,
@@ -264,6 +254,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingBottom: 15,
   },
+  centerContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   bottomNav: {
     flexDirection: 'row',
     backgroundColor: '#2c2c2c',
@@ -273,19 +268,74 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.1)',
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  bottomNavCustom: {
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+    alignItems: 'center',
+    backgroundColor: '#2c2c2c',
+    paddingVertical: 20,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+  },
+  emergencyButton: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: '#e94e4e',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'absolute',
+    bottom: 30,
+    left: '50%',
+    marginLeft: -75,
+    shadowColor: '#e94e4e',
+    shadowOffset: {
+      width: 0,
+      height: 10,
+    },
+    shadowOpacity: 0.4,
+    shadowRadius: 15,
+    elevation: 10,
+  },
+  emergencyButtonBig: {
+    width: 220, //180
+    height: 220,
+    borderRadius: 120,
+    backgroundColor: '#e94e4e',
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: 'center',
+    marginVertical: 16,
+    shadowColor: '#e94e4e',
+    shadowOffset: {
+      width: 0,
+      height: 10,
+    },
+    shadowOpacity: 0.6,
+    shadowRadius: 15,
+    elevation: 10,
   },
   navItem: {
     alignItems: 'center',
   },
   navText: {
+    color: 'white',
     fontSize: 12,
-    color: '#8e8e93',
-    marginTop: 4,
+    marginTop: 5,
   },
-  micButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+  micNavItem: {
+    alignItems: 'center',
+    marginTop: -30,
+  },
+  micButtonBig: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     backgroundColor: '#e94e4e',
     justifyContent: 'center',
     alignItems: 'center',
