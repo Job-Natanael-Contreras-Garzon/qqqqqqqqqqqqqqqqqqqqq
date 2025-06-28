@@ -3,17 +3,16 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
+  FlatList, 
   SafeAreaView,
-  StatusBar,
+  StatusBar, 
   Alert,
   TouchableOpacity,
-  Dimensions
-} from 'react-native';
+  Dimensions,
+  Modal, 
+  ImageBackground} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { EmergencyCategoryCard } from '../components/EmergencyCategoryCard';
-import { EmergencyButton } from '../components/EmergencyButton';
 import { EmergencyContactsModal } from '../components/EmergencyContactsModal';
 import { emergencyCategories, getEmergencyGuideByCategory } from '../data/emergencyData';
 import { EmergencyCategory } from '../types';
@@ -22,6 +21,15 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { NavigationParams } from '../types';
 
 const { width, height } = Dimensions.get('window');
+
+interface EmergencyCard extends EmergencyCategory {
+  image: any;
+}
+
+const emergencyCards: EmergencyCard[] = emergencyCategories.map(category => ({
+  ...category,
+  image: require('../../assets/placeholder.png')
+}));
 
 type EmergencyCategoriesScreenNavigationProp = StackNavigationProp<
   NavigationParams,
@@ -37,9 +45,9 @@ export const EmergencyCategoriesScreen: React.FC<EmergencyCategoriesScreenProps>
 }) => {
   const voiceService = VoiceService.getInstance();
   const [showContacts, setShowContacts] = useState(false);
+  const [isListeningModalVisible, setListeningModalVisible] = useState(false);
 
   useEffect(() => {
-    // Mensaje de bienvenida
     const welcomeMessage = 'Bienvenido a la guía de primeros auxilios. Selecciona el tipo de emergencia tocando una de las opciones.';
     setTimeout(() => {
       voiceService.speak(welcomeMessage);
@@ -48,7 +56,7 @@ export const EmergencyCategoriesScreen: React.FC<EmergencyCategoriesScreenProps>
 
   const handleCategoryPress = (category: EmergencyCategory) => {
     const guide = getEmergencyGuideByCategory(category.id);
-    
+
     if (guide) {
       voiceService.speak(`Has seleccionado ${category.title}. Iniciando guía de primeros auxilios.`);
       
@@ -57,11 +65,8 @@ export const EmergencyCategoriesScreen: React.FC<EmergencyCategoriesScreenProps>
         currentStepId: guide.initialQuestion?.id || guide.steps[0]?.id || ''
       });
     } else {
-      // Categoría no implementada aún
       voiceService.speak(`La guía de ${category.title} aún no está disponible. Por favor, llama a emergencias inmediatamente.`);
       
-      // Navegar a pantalla de no implementado
-      // Para este ejemplo, mostramos un alert
       setTimeout(() => {
         Alert.alert(
           `${category.title} - No Disponible`,
@@ -90,110 +95,92 @@ export const EmergencyCategoriesScreen: React.FC<EmergencyCategoriesScreenProps>
     emergencyService.confirmAndCallEmergency();
   };
 
-  const renderCategory = ({ item }: { item: EmergencyCategory }) => (
+  const renderCategory = ({ item }: { item: EmergencyCard }) => (
     <TouchableOpacity 
       style={styles.categoryCard}
       onPress={() => handleCategoryPress(item)}
       activeOpacity={0.8}
     >
-      <View style={[styles.categoryContent, { backgroundColor: item.color }]}>
-        {/* Ícono más centrado y compacto */}
-        <View style={styles.categoryIllustration}>
-          <MaterialCommunityIcons 
-            name={item.icon as any} 
-            size={32} 
-            color="white" 
-          />
-        </View>
-        <View style={styles.categoryTextContainer}>
-          <Text style={styles.categoryTitle}>{item.title}</Text>
-        </View>
-      </View>
+      <ImageBackground source={item.image} style={styles.cardBackground}>
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.8)']}
+          style={styles.cardOverlay}
+        />
+        <Text style={styles.cardTitle}>{item.title}</Text>
+        <Text style={styles.cardSubtitle}>EMERGENCIA</Text>
+      </ImageBackground>
     </TouchableOpacity>
   );
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#1a1a1a" />
-      
-      {/* Background Gradient */}
-      <LinearGradient
-        colors={['#1a1a1a', '#2d3436', '#636e72']}
-        style={StyleSheet.absoluteFill}
-      />
-      
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>AYUDA</Text>
-        <Text style={styles.subtitle}>
-          ¡Siempre estamos aquí para emergencias!
-        </Text>
-        <Text style={styles.subtitle}>
-          ¡Toca para iniciar el protocolo de emergencia!
-        </Text>
-      </View>
+      <StatusBar barStyle="light-content" />
+      <LinearGradient colors={['#2c2c2c', '#1a1a1a']} style={styles.safeArea}>
+        <View style={styles.header}>
+          <Text style={styles.title}>AYUDA</Text>
+          <Text style={styles.subtitle}>
+            ¡Siempre estamos aquí para emergencias!{`\n`}¡Toca para iniciar el protocolo de emergencia!
+          </Text>
+        </View>
 
-      {/* Botón central de emergencia */}
-      <View style={styles.emergencyButtonContainer}>
-        <TouchableOpacity 
-          style={styles.emergencyButton}
-          onPress={handleEmergencyCall}
-          activeOpacity={0.8}
-        >
-          <MaterialCommunityIcons 
-            name="phone" 
-            size={60} 
-            color="white" 
-          />
+        <TouchableOpacity style={styles.emergencyButton} onPress={handleEmergencyCall}>
+          <MaterialCommunityIcons name="phone" size={60} color="white" />
         </TouchableOpacity>
-      </View>
 
-      {/* Categorías en grid 3x2 */}
-      <View style={styles.categoriesContainer}>
-        <Text style={styles.sectionTitle}>Selecciona el tipo de emergencia</Text>
         <FlatList
-          data={emergencyCategories}
+          data={emergencyCards}
           renderItem={renderCategory}
           keyExtractor={(item) => item.id}
-          numColumns={3}
-          scrollEnabled={false}
-          contentContainerStyle={styles.categoriesGrid}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.sliderContainer}
         />
-      </View>
 
-      {/* Bottom Navigation */}
-      <View style={styles.bottomNav}>
-        <TouchableOpacity style={styles.navItem}>
-          <MaterialCommunityIcons name="home" size={24} color="#8e8e93" />
-          <Text style={styles.navText}>Live</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.navItem}>
-          <MaterialCommunityIcons name="heart" size={24} color="#8e8e93" />
-          <Text style={styles.navText}>Medic</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={[styles.navItem, styles.activeNavItem]}>
-          <View style={styles.micButton}>
-            <MaterialCommunityIcons name="microphone" size={28} color="white" />
+        <View style={styles.bottomNav}>
+          <TouchableOpacity style={styles.navItem}>
+            <MaterialCommunityIcons name="home-variant" size={28} color="#e94e4e" />
+            <Text style={[styles.navText, { color: '#e94e4e' }]}>Emergencia</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.navItem} onPress={() => setListeningModalVisible(true)}>
+            <View style={styles.micButton}>
+              <MaterialCommunityIcons name="microphone" size={32} color="white" />
+            </View>
+            <Text style={styles.navText}>Asistente</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.navItem}>
+            <MaterialCommunityIcons name="view-dashboard" size={28} color="#8e8e93" />
+            <Text style={styles.navText}>Dashboard</Text>
+          </TouchableOpacity>
+        </View>
+      </LinearGradient>
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isListeningModalVisible}
+        onRequestClose={() => setListeningModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <TouchableOpacity style={styles.closeButton} onPress={() => setListeningModalVisible(false)}>
+              <MaterialCommunityIcons name="close" size={24} color="white" />
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}><MaterialCommunityIcons name="microphone" size={24} color="#e94e4e" /> Escuchando...</Text>
+            <Text style={styles.modalSubtitle}>Describe tu emergencia</Text>
+            <Text style={styles.modalDescription}>Explica claramente qué está pasando para poder ayudarte mejor.</Text>
+            <View style={styles.exampleContainer}>
+              <Text style={styles.exampleText}>Ejemplo: 'Mi hijo se está asfixiando' o 'Me corté profundamente la mano'.</Text>
+            </View>
+            <TouchableOpacity style={styles.sendMessageButton}>
+              <MaterialCommunityIcons name="send" size={24} color="white" />
+              <Text style={styles.sendMessageText}>Enviar mensaje</Text>
+            </TouchableOpacity>
           </View>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.navItem}>
-          <MaterialCommunityIcons name="car" size={24} color="#8e8e93" />
-          <Text style={styles.navText}>Vehicle</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.navItem}
-          onPress={() => setShowContacts(true)}
-        >
-          <MaterialCommunityIcons name="account" size={24} color="#8e8e93" />
-          <Text style={styles.navText}>Contacts</Text>
-        </TouchableOpacity>
-      </View>
+        </View>
+      </Modal>
 
-      {/* Modal de contactos */}
       {showContacts && (
         <EmergencyContactsModal onClose={() => setShowContacts(false)} />
       )}
@@ -204,20 +191,16 @@ export const EmergencyCategoriesScreen: React.FC<EmergencyCategoriesScreenProps>
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#1a1a1a',
   },
   safeArea: {
     flex: 1,
   },
   header: {
-    paddingTop: 20,
+    paddingTop: 40,
     paddingHorizontal: 20,
     paddingBottom: 20,
-  },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
   },
   title: {
     fontSize: 28,
@@ -228,74 +211,63 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: 'rgba(255,255,255,0.7)',
+    textAlign: 'center',
     lineHeight: 22,
-    textAlign: 'left',
-  },
-  emergencyButtonContainer: {
-    alignItems: 'center',
-    marginVertical: 30,
   },
   emergencyButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#ff4757',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#e94e4e',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#ff4757',
+    alignSelf: 'center',
+    marginVertical: 30,
+    shadowColor: '#e94e4e',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 10,
     },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOpacity: 0.4,
+    shadowRadius: 15,
+    elevation: 10,
   },
-  categoriesContainer: {
-    flex: 1,
+  sliderContainer: {
     paddingHorizontal: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: 'white',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  categoriesGrid: {
     paddingBottom: 20,
+    height: 220,
   },
   categoryCard: {
-    width: (width - 80) / 3, // 3 columnas
-    height: 100,
-    marginHorizontal: 5,
-    marginVertical: 8,
+    width: width * 0.4,
+    height: 200,
     borderRadius: 16,
+    marginHorizontal: 10,
     overflow: 'hidden',
   },
-  categoryContent: {
+  cardBackground: {
     flex: 1,
-    padding: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 16,
+    justifyContent: 'flex-end',
   },
-  categoryIllustration: {
-    marginBottom: 8,
+  cardOverlay: {
+    ...StyleSheet.absoluteFillObject,
   },
-  categoryTextContainer: {
-    alignSelf: 'center',
-  },
-  categoryTitle: {
+  cardTitle: {
     color: 'white',
-    fontSize: 11,
-    fontWeight: '600',
-    textAlign: 'center',
+    fontSize: 18,
+    fontWeight: 'bold',
+    paddingHorizontal: 15,
+  },
+  cardSubtitle: {
+    color: '#e94e4e',
+    fontSize: 12,
+    fontWeight: 'bold',
+    paddingHorizontal: 15,
+    paddingBottom: 15,
   },
   bottomNav: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    paddingVertical: 12,
+    backgroundColor: '#2c2c2c',
+    paddingVertical: 10,
     paddingHorizontal: 20,
     justifyContent: 'space-around',
     alignItems: 'center',
@@ -304,23 +276,81 @@ const styles = StyleSheet.create({
   },
   navItem: {
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: 8,
   },
   navText: {
     fontSize: 12,
     color: '#8e8e93',
     marginTop: 4,
   },
-  activeNavItem: {
-    backgroundColor: 'transparent',
-  },
   micButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#ff4757',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#e94e4e',
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 5,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  },
+  modalContent: {
+    width: '90%',
+    backgroundColor: '#2c2c2c',
+    borderRadius: 20,
+    padding: 25,
+    alignItems: 'center',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 15,
+    right: 15,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 10,
+  },
+  modalSubtitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 10,
+  },
+  modalDescription: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.7)',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  exampleContainer: {
+    backgroundColor: '#3a3a3a',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 20,
+    width: '100%',
+  },
+  exampleText: {
+    fontSize: 14,
+    color: 'white',
+    fontStyle: 'italic',
+  },
+  sendMessageButton: {
+    flexDirection: 'row',
+    backgroundColor: '#e94e4e',
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 30,
+    alignItems: 'center',
+  },
+  sendMessageText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 10,
   },
 });
